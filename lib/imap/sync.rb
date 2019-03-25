@@ -4,14 +4,7 @@ module Imap
   class Sync
     def initialize(group, provider = Imap::Providers::Generic)
       @group = group
-
-      @provider = provider.new(group.imap_server,
-        port: group.imap_port,
-        ssl: group.imap_ssl,
-        username: group.email_username,
-        password: group.email_password
-      )
-      @provider.connect!
+      @provider = provider
     end
 
     def disconnect!
@@ -19,6 +12,14 @@ module Imap
     end
 
     def process(mailbox)
+      @provider = @provider.new(@group.imap_server,
+        port: @group.imap_port,
+        ssl: @group.imap_ssl,
+        username: @group.email_username,
+        password: @group.email_password
+      )
+      @provider.connect!
+
       # Server-to-Discourse sync:
       #   - check mailbox validity
       #   - discover changes to old messages (flags and labels)
@@ -83,7 +84,7 @@ module Imap
       end
     end
 
-    def self.update_topic(email, incoming_email, opts)
+    def update_topic(email, incoming_email, opts={})
       return if incoming_email&.post&.post_number != 1 || incoming_email.imap_sync
 
       opts ||= {}
@@ -95,7 +96,7 @@ module Imap
 
     private
 
-    def self.update_topic_archived_state(email, topic, opts)
+    def update_topic_archived_state(email, topic, opts)
       topic_is_archived = topic.group_archived_messages.length > 0
       email_is_archived = !email["LABELS"].include?("\\Inbox")
 
@@ -106,8 +107,8 @@ module Imap
       end
     end
 
-    def self.update_topic_tags(email, topic, opts)
-      tags = [ @provider.to_tag(mailbox.name) ]
+    def update_topic_tags(email, topic, opts)
+      tags = opts[:mailbox] ? [ @provider.to_tag(opts[:mailbox].name) ] : []
       email["FLAGS"].each { |flag| tags << @provider.to_tag(flag) }
       email["LABELS"].each { |label| tags << @provider.to_tag(label) }
       tags.reject!(&:blank?)

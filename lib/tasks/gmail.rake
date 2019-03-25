@@ -10,8 +10,8 @@ task "gmail:credentials", [:group_name] => [:environment] do |_, args|
   end
 
   credentials = Google::Auth::UserRefreshCredentials.new(
-    client_id: Jobs::ProcessGmail::GMAIL_CLIENT_ID,
-    client_secret: Jobs::ProcessGmail::GMAIL_CLIENT_SECRET,
+    client_id: group.custom_fields[Jobs::ProcessGmail::GMAIL_CLIENT_ID_FIELD],
+    client_secret: group.custom_fields[Jobs::ProcessGmail::GMAIL_CLIENT_SECRET_FIELD],
     scope: Google::Apis::GmailV1::AUTH_SCOPE,
     redirect_uri: "urn:ietf:wg:oauth:2.0:oob"
   )
@@ -23,6 +23,6 @@ task "gmail:credentials", [:group_name] => [:environment] do |_, args|
   credentials.fetch_access_token!
 
   puts "Your access token is #{credentials.access_token}."
-  group.custom_fields[Jobs::ProcessGmail::GMAIL_REFRESH_TOKEN] = credentials.access_token
+  group.custom_fields[Jobs::ProcessGmail::GMAIL_REFRESH_TOKEN_FIELD] = credentials.access_token
   group.save_custom_fields
 end
